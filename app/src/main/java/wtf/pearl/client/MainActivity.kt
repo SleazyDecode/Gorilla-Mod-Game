@@ -175,12 +175,5 @@ fun SettingsScreen(theme: PearlTheme, setTheme: (PearlTheme) -> Unit, c: ThemeCo
                 Text("Long Arms → mod-side feature", color = Color.Gray)
             }
         }
-        Card(colors = CardDefaults.cardColors(containerColor = c.panel)) {
-            Column(Modifier.padding(16.dp)) {
-                Text("INTEGRITY", fontWeight = FontWeight.Bold)
-                Text("No attestation/root-bypass code is included.", color = Color.Gray)
-                Text("Pearl.wtf only reports connection/setup state in this starter.", color = Color.Gray)
-            }
-        }
     }
 }
