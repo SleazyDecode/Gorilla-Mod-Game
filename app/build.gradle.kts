@@ -13,6 +13,18 @@ android {
         versionCode = 1
         versionName = "0.1.0"
     }
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+    applicationVariants.all {
+        outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "Pearl.wtf.apk"
+        }
+    }
 }
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2025.08.00"))
