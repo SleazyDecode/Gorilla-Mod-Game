@@ -2,22 +2,28 @@ $ErrorActionPreference = "Stop"
 $GradleVersion = if ($env:GRADLE_VERSION) { $env:GRADLE_VERSION } else { "8.13" }
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $Cache = Join-Path $HOME ".cache\pearl-wtf"
-$GradleHome = Join-Path $Cache "gradle-$GradleVersion\gradle-$GradleVersion"
+$GradleDir = Join-Path $Cache "gradle-$GradleVersion"
+$GradleBat = Join-Path $GradleDir "bin\gradle.bat"
 $Zip = Join-Path $Cache "gradle-$GradleVersion-bin.zip"
 
 New-Item -ItemType Directory -Force -Path $Cache | Out-Null
 
-if (-not (Test-Path (Join-Path $GradleHome "bin\gradle.bat"))) {
+if (-not (Test-Path $GradleBat)) {
     if (-not (Test-Path $Zip)) {
         Write-Host "Downloading Gradle $GradleVersion..."
         Invoke-WebRequest "https://services.gradle.org/distributions/gradle-$GradleVersion-bin.zip" -OutFile $Zip
     }
+
     Write-Host "Extracting Gradle $GradleVersion..."
     Expand-Archive -Force $Zip $Cache
+
+    if (-not (Test-Path $GradleBat)) {
+        throw "Gradle extraction completed, but $GradleBat was not found. Delete $Cache and run the build again."
+    }
 }
 
 Set-Location $Root
-& (Join-Path $GradleHome "bin\gradle.bat") :app:assembleDebug @args
+& $GradleBat :app:assembleDebug @args
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $Built = Join-Path $Root "app\build\outputs\apk\debug\Pearl.wtf.apk"
