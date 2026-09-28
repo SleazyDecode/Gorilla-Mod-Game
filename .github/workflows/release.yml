@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (example: v0.1.0)"
+        description: "Release tag"
         required: true
         default: "v0.1.0"
       prerelease:
-        description: "Mark release as prerelease"
+        description: "Create as prerelease"
         required: true
-        default: "true"
+        default: true
         type: boolean
   push:
     tags:
@@ -20,50 +20,43 @@ permissions:
   contents: write
 
 jobs:
-  build-release:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
+      - uses: actions/checkout@v4
+      - name: Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-
-      - name: Set up Android SDK
+      - name: Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
+      - name: Install Android SDK
         run: |
           sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
           yes | sdkmanager --licenses >/dev/null || true
-
-      - name: Set up Gradle
+      - name: Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.13"
-
-      - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace
-
-      - name: Determine release tag
-        id: release
+      - name: Build Pearl.wtf.apk
+        run: gradle :app:assembleDebug
+      - name: Verify artifact
+        run: |
+          test -f app/build/outputs/apk/debug/Pearl.wtf.apk
+          cp app/build/outputs/apk/debug/Pearl.wtf.apk Pearl.wtf.apk
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            TAG="$GITHUB_REF_NAME"
+            PRE="false"
           else
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-            echo "prerelease=${{ inputs.prerelease }}" >> "$GITHUB_OUTPUT"
+            TAG="${{ inputs.tag }}"
+            PRE="${{ inputs.prerelease }}"
           fi
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          args=("--title" "Pearl.wtf ${{ steps.release.outputs.tag }}" "--generate-notes")
-          if [[ "${{ steps.release.outputs.prerelease }}" == "true" ]]; then args+=("--prerelease"); fi
-          gh release create "${{ steps.release.outputs.tag }}" "app/build/outputs/apk/debug/app-debug.apk#Pearl.wtf APK" "${args[@]}"
+          args=("--title" "Pearl.wtf $TAG" "--generate-notes")
+          if [[ "$PRE" == "true" ]]; then args+=("--prerelease"); fi
+          gh release create "$TAG" "Pearl.wtf.apk#Pearl.wtf.apk" "${args[@]}"
